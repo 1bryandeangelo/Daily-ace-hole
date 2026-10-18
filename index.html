@@ -99,15 +99,34 @@ button:focus-visible,.chip:focus-visible,.mini:focus-visible{outline:2px solid v
 .chip.readout{min-width:6.6em;text-align:center;padding-inline:4px}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--dusk)}
 .chip[aria-pressed="true"] small{color:#5a4e66}
-.meter{position:fixed;right:calc(max(16px, env(safe-area-inset-right, 0px)) + 2px);top:34%;height:28%;width:8px;border-radius:8px;background:rgba(248,236,217,.18);overflow:hidden;opacity:0;transition:opacity .2s}
+.meter{position:fixed;right:calc(max(16px, env(safe-area-inset-right, 0px)) + 4px);top:30%;height:30%;width:10px;border-radius:8px;background:rgba(248,236,217,.2);opacity:0;transition:opacity .2s}
 .meter.show{opacity:1}
 .meter i{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,var(--reed),var(--ember));border-radius:8px}
-.meter::after{content:"";position:absolute;left:-3px;right:-3px;bottom:89%;height:2px;background:var(--ink)}
+.meter em{position:absolute;left:-5px;right:-5px;height:2px;background:var(--ink);bottom:0}
+.meter em::after{content:"Pin";position:absolute;right:18px;top:-6px;font:500 .62rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+.meter span{position:absolute;right:18px;top:-18px;font:500 .7rem/1 var(--mono);color:var(--ink);text-shadow:0 1px 6px rgba(0,0,0,.7);white-space:nowrap}
+.report{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.2);text-align:left;margin-top:4px}
+.rep-row{display:grid;grid-template-columns:3.4em minmax(0,1fr) 6.4em;align-items:center;gap:10px}
+.rep-k{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.rep-v{font-family:var(--mono);font-size:.74rem;text-align:right;font-variant-numeric:tabular-nums}
+.gauge{position:relative;height:8px;border-radius:8px;background:rgba(248,236,217,.14)}
+.gauge i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:linear-gradient(90deg,var(--reed),var(--ember))}
+.gauge em{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--ink)}
+.gauge.curve::before{content:"";position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--ink-soft)}
+.gauge.curve b{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ink)}
+.ends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.56rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px}
+.rep-why{font-size:.78rem;color:var(--ink-soft);line-height:1.45}
+.help{text-align:left}
+.help .eyebrow{text-align:center}
+.help-sec h3{margin:0 0 3px;font-family:var(--display);font-weight:400;font-size:1.3rem}
+.help-sec p{margin:0;font-size:.86rem;line-height:1.5;color:var(--ink-soft);max-width:60ch}
+.help-sec p b{color:var(--ink);font-weight:600}
+.mini[aria-pressed="true"]{background:var(--ink);color:var(--dusk)}
 @media (prefers-reduced-motion:reduce){.card{animation:none}.pill svg{transition:none}}
 </style>
 
 <canvas id="scene" aria-label="3D view of today's par 3"></canvas>
-<div class="meter" id="meter"><i id="meterFill"></i></div>
+<div class="meter" id="meter"><i id="meterFill"></i><em id="meterNeed"></em><span id="meterPct"></span></div>
 <div class="hud">
   <header class="top">
     <div>
@@ -123,6 +142,8 @@ button:focus-visible,.chip:focus-visible,.mini:focus-visible{outline:2px solid v
       <div class="balls" id="balls" aria-label="Balls"></div>
       <button class="mini" id="inputBtn">Input: Swipe</button>
       <button class="mini" id="feelBtn" hidden>Feel: Normal</button>
+      <button class="mini" id="practiceSwingBtn" aria-pressed="false">Practice swing</button>
+      <button class="mini" id="helpBtn">How to play</button>
     </div>
   </header>
 
@@ -131,6 +152,11 @@ button:focus-visible,.chip:focus-visible,.mini:focus-visible{outline:2px solid v
       <div class="eyebrow" id="resEyebrow">From the pin</div>
       <div class="big" id="resBig">—</div>
       <div class="detail" id="resDetail"></div>
+      <div class="report" id="report" hidden>
+        <div class="rep-row"><span class="rep-k">Power</span><div class="gauge"><i id="repPow"></i><em id="repNeed"></em></div><span class="rep-v" id="repPowTxt"></span></div>
+        <div class="rep-row"><span class="rep-k">Curve</span><div><div class="gauge curve"><b id="repDot"></b></div><div class="ends"><span>Hook</span><span>Slice</span></div></div><span class="rep-v" id="repCurveTxt"></span></div>
+        <div class="rep-why" id="repWhy"></div>
+      </div>
       <div class="btns"><button id="nextBtn">Next ball</button></div>
     </div>
     <div class="card scroll" id="summary" hidden>
@@ -159,6 +185,16 @@ button:focus-visible,.chip:focus-visible,.mini:focus-visible{outline:2px solid v
       <div class="share" id="shareText"></div>
       <div class="detail" id="countdown"></div>
       <div class="btns"><button id="copyBtn">Copy result</button><button class="ghost" id="practiceBtn">Practice</button><button class="ghost" id="allBadgesBtn2">Badges</button></div>
+    </div>
+    <div class="card scroll help" id="helpCard" hidden>
+      <div class="eyebrow">How to play</div>
+      <div class="help-sec"><h3>The goal</h3><p>One new hole a day and three balls. Your closest ball to the pin is your score, and everyone plays the same hole, pin and wind.</p></div>
+      <div class="help-sec"><h3>Power</h3><p><b>100%</b> is a full shot with the club shown. While you swing, a meter on the right fills up. The <b>Pin</b> tick marks the power that flies the ball to the flag with no wind. Swing past 100% and you get a little more distance but less control.</p></div>
+      <div class="help-sec"><h3>Swipe</h3><p>Drag down on the course to take it back. The farther you pull, the more power. Then flick straight up, fast. A slow flick loses power. If your flick drifts <b>right</b>, the ball curves right (a slice). If it drifts <b>left</b>, it curves left (a hook).</p></div>
+      <div class="help-sec"><h3>Phone swing</h3><p>Grip the phone tight in both hands like a club. Hold still until it says Ready, then swing through. <b>Swing speed</b> sets power, and Feel changes how hard a full swing has to be. <b>Rolling your wrists over</b> through impact curves it left (hook). <b>Holding the face open</b> curves it right (slice). Turn on Practice swing to test without using a ball.</p><button class="linkish" id="flipBtn">Curve going the wrong way? Flip it</button></div>
+      <div class="help-sec"><h3>Shots</h3><p><b>Full</b> flies high and stops fast. <b>Knock</b> flies about three quarters as far, lands short and runs 15 to 25 yards. <b>Aim</b> moves your target left or right of the pin. The dashed ring shows where a 100% shot lands with no wind.</p></div>
+      <div class="help-sec"><h3>Read green</h3><p>Flies the camera above the green. Lighter bands sit higher and arrows point downhill, so a ball that lands above the hole feeds toward it.</p></div>
+      <div class="btns"><button id="helpClose">Got it</button></div>
     </div>
     <div class="card scroll" id="badgeCard" hidden>
       <div class="eyebrow" id="badgeCount">Badges</div>
@@ -546,9 +582,54 @@ function launchParams(power){
   return {speed, launch, spin: knock ? 0.75 : 1};
 }
 function aimYaw(){ return Math.atan2(PIN.x + aimOff, PIN.z); }
-function launch(power, curve){
+function simCarry(power){
+  const L = launchParams(power); const yaw = aimYaw();
+  const b = {x:0, y:0.05, z:0, vx:L.speed*Math.cos(L.launch)*Math.sin(yaw), vy:L.speed*Math.sin(L.launch), vz:L.speed*Math.cos(L.launch)*Math.cos(yaw), spin:L.spin, side:0, state:'air', t:0};
+  for (let i=0;i<4000 && b.state === 'air';i++) stepBall(1/120, b, true);
+  return Math.hypot(b.landX||0, b.landZ||0);
+}
+let NEED = 1;  // power that carries the ball to the pin, no wind
+function computeNeed(){
+  const target = Math.hypot(PIN.x + aimOff, PIN.z) - (shotType === 'knock' ? 18 : 0);  // a knockdown should land short and run up
+  if (simCarry(1.06) < target){ NEED = 1.12; return; }
+  let lo = 0.25, hi = 1.06; for (let i=0;i<14;i++){ const m = (lo+hi)/2; if (simCarry(m) < target) lo = m; else hi = m; }
+  NEED = (lo+hi)/2;
+  $('meterNeed').style.bottom = `${Math.min(100, NEED/1.12*100)}%`;
+}
+let lastSwing = null;
+let practiceSwing = false;
+const powerLabel = p => p < 0.5 ? 'Soft' : p < 0.85 ? 'Smooth' : p <= 1.0 ? 'Full' : 'Overswing';
+function curveLabel(cu){ const a = Math.abs(cu); if (a < 0.12) return 'Straight'; if (a < 0.35) return cu > 0 ? 'Fade' : 'Draw'; if (a < 0.7) return cu > 0 ? 'Slice' : 'Hook'; return cu > 0 ? 'Big slice' : 'Snap hook'; }
+function swingWhy(sw){
+  if (!sw) return '';
+  const a = Math.abs(sw.cu); let pow, cur;
+  if (sw.mode === 'swipe'){
+    pow = `Pull-back ${Math.round(sw.back*100)}% × flick speed ${Math.round(sw.tempo*100)}%.` + (sw.tempo < 0.95 ? ' Flick faster to keep all your power.' : '');
+    cur = a < 0.12 ? 'Your flick went straight up.' : `Your flick drifted ${sw.cu > 0 ? 'right' : 'left'}, so the ball curved ${sw.cu > 0 ? 'right' : 'left'}.`;
+  } else {
+    pow = `Swing speed ${sw.rate}°/s. Full power on ${sw.feel} is ${sw.ref}°/s.`;
+    cur = a < 0.12 ? 'Square at impact.' : sw.cu > 0 ? 'The face stayed open through impact, so it curved right.' : 'Your wrists rolled over through impact, so it curved left.';
+  }
+  const need = NEED > 1.1 ? (sw.type === 'knock' ? 'This club can\'t run it to the pin. Take more club.' : 'This club can\'t carry to the pin. Take more club.') : `The pin needed about ${Math.round(NEED*100)}%${sw.type === 'knock' ? ', landing short and running up' : ''}.`;
+  return `${pow} ${need} ${cur}`;
+}
+function fillReport(sw){
+  $('report').hidden = !sw; if (!sw) return;
+  $('repPow').style.width = `${Math.min(100, sw.p/1.12*100)}%`;
+  $('repNeed').style.left = `${Math.min(100, NEED/1.12*100)}%`;
+  $('repPowTxt').textContent = `${Math.round(sw.p*100)}% ${powerLabel(sw.p)}`;
+  $('repDot').style.left = `${(Math.max(-1, Math.min(1, sw.cu))+1)/2*100}%`;
+  $('repCurveTxt').textContent = curveLabel(sw.cu);
+  $('repWhy').textContent = swingWhy(sw);
+}
+function launch(power, curve, info){
   if (phase !== 'ready' || reading) return;
   const p = Math.max(0, Math.min(1.12, power)); let cu = Math.max(-1, Math.min(1, curve));
+  lastSwing = {p:+p.toFixed(3), cu:+cu.toFixed(3), type:shotType, ...(info || {})};
+  if (practiceSwing){
+    setHint(`Practice swing: ${Math.round(p*100)}% ${powerLabel(p).toLowerCase()} · ${curveLabel(cu).toLowerCase()}. Pin needs about ${Math.round(Math.min(NEED,1.12)*100)}%.`);
+    motion.state = 'address'; motion.stillSince = 0; return;
+  }
   if (p > 1) cu += (fxR()-0.5)*(p-1)*6;
   const L = launchParams(p); const yaw = aimYaw() + cu*0.035;
   Object.assign(ball, {x:0, y:0.05, z:0, vx:L.speed*Math.cos(L.launch)*Math.sin(yaw), vy:L.speed*Math.sin(L.launch), vz:L.speed*Math.cos(L.launch)*Math.cos(yaw), spin:L.spin, side:cu*5.5, state:'air', trail:[], carry:0, landed:false, wet:false, t:0});
@@ -616,7 +697,7 @@ function finish(){
   const landD = ball.landX === undefined ? dPin : Math.hypot(ball.landX-PIN.x, ball.landZ-PIN.z);
   const landSurf = ball.landX === undefined ? surf : surfaceAt(ball.landX, ball.landZ);
   const landPast = ball.landZ !== undefined && Math.hypot(ball.landX, ball.landZ) > YARDS;
-  const shot = {d:+dPin.toFixed(3), surf, carry:Math.round(ball.carry), club:CLUBS[clubIdx].id, type:shotType, aim:aimOff, landD:+landD.toFixed(2), landSurf, landPast};
+  const shot = {d:+dPin.toFixed(3), surf, carry:Math.round(ball.carry), club:CLUBS[clubIdx].id, type:shotType, aim:aimOff, landD:+landD.toFixed(2), landSurf, landPast, sw:lastSwing, need:+NEED.toFixed(3)};
   if (!practice){ daily.push(shot); saveShots(); renderBalls(); }
   setTimeout(() => showResult(shot), ball.wet ? 900 : 500);
 }
@@ -650,7 +731,7 @@ function renderClub(){
   $('clubLbl').innerHTML = `${c.id}<small>${knock ? Math.round(c.carry*0.76) : c.carry}</small>`;
   $('shotFull').setAttribute('aria-pressed', String(!knock)); $('shotKnock').setAttribute('aria-pressed', String(knock));
   $('aimLbl').textContent = aimOff === 0 ? 'At pin' : `${Math.abs(aimOff)} yd ${aimOff < 0 ? 'L' : 'R'}`;
-  predict();
+  predict(); computeNeed();
 }
 $('clubDown').addEventListener('click', () => { clubIdx = Math.max(0, clubIdx-1); renderClub(); });
 $('clubUp').addEventListener('click', () => { clubIdx = Math.min(CLUBS.length-1, clubIdx+1); renderClub(); });
@@ -674,6 +755,7 @@ function showResult(s){
   else if (s.surf !== 'water') line2 = s.d*3 < TOUR_FT ? `Inside the Tour average (${TOUR_FT} ft).` : `${ladderLabel(s.d*3)}-level shot.`;
   $('resDetail').textContent = `${c.name}${s.type === 'knock' ? ' knockdown' : ''} · carry ${s.carry} yds · ${SURF_LABEL[s.surf]}${line2 ? '\n' + line2 : ''}`;
   $('resDetail').style.whiteSpace = 'pre-line';
+  const keepNeed = NEED; if (s.need) NEED = s.need; fillReport(s.sw); NEED = keepNeed;
   $('nextBtn').textContent = practice ? 'Hit another' : daily.length >= BALLS ? 'See today\'s result' : `Ball ${daily.length+1} of ${BALLS}`;
   $('result').hidden = false;
 }
@@ -768,7 +850,7 @@ const TIER_RANK = {legendary:0, epic:1, rare:2, uncommon:3, common:4};
 
 function showSummary(){
   phase = 'summary'; practice = false; renderBalls();
-  $('controls').hidden = true; $('inputBtn').hidden = true; $('feelBtn').hidden = true;
+  $('controls').hidden = true; $('inputBtn').hidden = true; $('feelBtn').hidden = true; $('practiceSwingBtn').hidden = true; $('helpBtn').hidden = true;
   const {best, bestFt, ctx, fresh} = evaluateDay();
   $('sumEyebrow').textContent = `Daily Hole #${holeNum} · ${holeName} · ${YARDS} yds`;
   $('sumBest').textContent = !best ? 'All wet' : best.surf === 'holed' ? 'Ace' : fmtDist(best.d);
@@ -834,7 +916,7 @@ $('copyBtn').addEventListener('click', () => {
   const sel = () => { const r = document.createRange(); r.selectNodeContents($('shareText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); $('copyBtn').textContent = 'Selected, copy it'; };
   try { navigator.clipboard.writeText(text).then(() => { $('copyBtn').textContent = 'Copied'; }, sel); } catch(e){ sel(); }
 });
-$('practiceBtn').addEventListener('click', () => { $('summary').hidden = true; $('controls').hidden = false; $('inputBtn').hidden = false; setModeUI(); practice = true; renderBalls(); resetBall(); });
+$('practiceBtn').addEventListener('click', () => { $('summary').hidden = true; $('controls').hidden = false; $('inputBtn').hidden = false; $('practiceSwingBtn').hidden = false; $('helpBtn').hidden = false; setModeUI(); practice = true; renderBalls(); resetBall(); });
 
 // ---------- swipe input ----------
 let swipe = null; const meter = $('meter'), meterFill = $('meterFill');
@@ -847,7 +929,7 @@ cv.addEventListener('pointermove', e => {
   if (!swipe || swipe.fired) return; const now = performance.now();
   if (e.clientY >= swipe.maxY){ swipe.maxY = e.clientY; swipe.maxX = e.clientX; swipe.samples = []; }
   swipe.back = Math.max(0, Math.min(1.12, (swipe.maxY - swipe.y0)/(H*0.28)));
-  meter.classList.add('show'); meterFill.style.height = `${Math.min(100, swipe.back/1.12*100)}%`;
+  meter.classList.add('show'); meterFill.style.height = `${Math.min(100, swipe.back/1.12*100)}%`; $('meterPct').textContent = `${Math.round(swipe.back*100)}%`;
   swipe.samples.push([now, e.clientX, e.clientY]);
   if (swipe.back > 0.06 && e.clientY < swipe.y0 - 30) fireSwipe();
 });
@@ -858,7 +940,7 @@ function fireSwipe(){
   const vy = (first[2]-last[2])/Math.max(8, last[0]-first[0]);
   const tempo = Math.max(0.35, Math.min(1, vy/1.3));
   const curve = Math.max(-1, Math.min(1, ((last[1]-swipe.maxX)/Math.max(30, swipe.maxY-last[2]))*1.8));
-  const power = swipe.back*tempo; swipe = null; launch(power, curve);
+  const power = swipe.back*tempo; const back = swipe.back; swipe = null; launch(power, curve, {mode:'swipe', back:+back.toFixed(2), tempo:+tempo.toFixed(2)});
 }
 cv.addEventListener('pointerup', () => { if (swipe && !swipe.fired){ const s = swipe.samples; if (swipe.back > 0.06 && s.length > 1 && s[s.length-1][2] < swipe.maxY - 20) fireSwipe(); else { swipe = null; meter.classList.remove('show'); } } });
 cv.addEventListener('pointercancel', () => { swipe = null; meter.classList.remove('show'); });
@@ -866,6 +948,10 @@ cv.addEventListener('pointercancel', () => { swipe = null; meter.classList.remov
 // ---------- motion input ----------
 let inputMode = 'swipe';
 const FEELS = [{n:'Easy', ref:650}, {n:'Normal', ref:1000}, {n:'Strong', ref:1400}]; let feelIdx = 1;
+let curveFlip = !!LS.get('dailyhole:flip', false);
+let meterTimer = 0;
+function motionMeter(frac, label){ clearTimeout(meterTimer); meter.classList.add('show'); meterFill.style.height = `${Math.min(100, Math.max(0, frac)/1.12*100)}%`; $('meterPct').textContent = label; }
+function hideMeterSoon(){ clearTimeout(meterTimer); meterTimer = setTimeout(() => meter.classList.remove('show'), 1400); }
 const motion = {state:'off', stillSince:0, axis:-1, sign:0, peak:0, peakMag:0, peakG:0, t0:0, last:0, listening:false};
 function readyHint(){
   if (phase !== 'ready' || reading) return;
@@ -881,11 +967,17 @@ function onMotion(e){
     if (mag > 170){ let ax = 0; for (let i=1;i<3;i++) if (Math.abs(v[i]) > Math.abs(v[ax])) ax = i; Object.assign(motion, {axis:ax, sign:Math.sign(v[ax]), state:'back', t0:now, peak:0}); }
   } else if (motion.state === 'back' || motion.state === 'down'){
     const down = -motion.sign*v[motion.axis]; if (down > 120) motion.state = 'down';
+    const ref = FEELS[feelIdx].ref;
     if (motion.state === 'down'){
       if (down > motion.peak){ motion.peak = down; motion.peakMag = mag; motion.peakG = motion.axis === 2 ? v[1] : v[2]; }
-      if (motion.peak > 300 && down < motion.peak*0.4){ motion.state = 'idle'; launch(motion.peakMag/FEELS[feelIdx].ref, (motion.peakG/Math.max(1, motion.peakMag))*2.2); }
-    }
-    if (now - motion.t0 > 3000){ motion.state = 'address'; motion.stillSince = 0; setHint('Too slow. Set up still and swing again.'); }
+      motionMeter(motion.peakMag/ref, `${Math.round(motion.peakMag/ref*100)}%`);
+      if (motion.peak > 300 && down < motion.peak*0.4){
+        motion.state = 'idle'; hideMeterSoon();
+        const cu = (motion.peakG/Math.max(1, motion.peakMag))*2.2*(curveFlip ? -1 : 1);
+        launch(motion.peakMag/ref, cu, {mode:'motion', rate:Math.round(motion.peakMag), ref, feel:FEELS[feelIdx].n});
+      }
+    } else motionMeter(0, 'Back');
+    if (now - motion.t0 > 3000){ motion.state = 'address'; motion.stillSince = 0; hideMeterSoon(); setHint('Too slow. Set up still and swing again.'); }
   }
 }
 async function enableMotion(){
@@ -902,6 +994,15 @@ function motionUnavailable(){ inputMode = 'swipe'; setModeUI(); setHint('Motion 
 function setModeUI(){ $('inputBtn').textContent = `Input: ${inputMode === 'swipe' ? 'Swipe' : 'Phone swing'}`; $('feelBtn').hidden = inputMode !== 'motion'; }
 $('inputBtn').addEventListener('click', () => { if (inputMode === 'swipe') enableMotion(); else { inputMode = 'swipe'; setModeUI(); readyHint(); } });
 $('feelBtn').addEventListener('click', () => { feelIdx = (feelIdx+1)%FEELS.length; $('feelBtn').textContent = `Feel: ${FEELS[feelIdx].n}`; });
+$('practiceSwingBtn').addEventListener('click', () => {
+  practiceSwing = !practiceSwing; $('practiceSwingBtn').setAttribute('aria-pressed', String(practiceSwing));
+  setHint(practiceSwing ? 'Practice swing is on. Swing as much as you like; no ball is used.' : 'Practice swing off. The next swing hits the ball.');
+});
+function openHelp(){ $('helpCard').hidden = false; $('helpCard').scrollTop = 0; $('controls').hidden = true; LS.set('dailyhole:seenHelp', true); }
+$('helpBtn').addEventListener('click', () => { if (!$('result').hidden) return; openHelp(); });
+$('helpClose').addEventListener('click', () => { $('helpCard').hidden = true; if (phase !== 'summary') $('controls').hidden = false; readyHint(); });
+$('flipBtn').addEventListener('click', () => { curveFlip = !curveFlip; LS.set('dailyhole:flip', curveFlip); $('flipBtn').textContent = curveFlip ? 'Curve flipped. Tap to undo' : 'Curve going the wrong way? Flip it'; });
+if (LS.get('dailyhole:flip', false)) $('flipBtn').textContent = 'Curve flipped. Tap to undo';
 
 // ---------- sound ----------
 const sfx = (() => {
@@ -970,7 +1071,7 @@ function frame(now){
 }
 
 renderHeader(); renderBalls(); renderClub(); setModeUI();
-if (daily.length >= BALLS) showSummary(); else readyHint();
+if (daily.length >= BALLS) showSummary(); else { readyHint(); if (!LS.get('dailyhole:seenHelp', false)) openHelp(); }
 requestAnimationFrame(frame);
 })();
 </script>
