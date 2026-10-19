@@ -293,6 +293,7 @@ button{font-family:var(--sans)}
       <div class="set-row"><div class="label">Dominant hand</div><div class="seg" id="segHand"><button data-v="R" aria-pressed="true">Right</button><button data-v="L" aria-pressed="false">Left</button></div></div>
       <div class="set-row"><div class="label">Address position</div><div class="seg" id="segAddr"><button data-v="std" aria-pressed="true">Standard</button><button data-v="mine" aria-pressed="false">Record mine</button></div><div class="body">Standard: phone in your dominant hand like the grip, screen up, top pointing at the ball. Record mine saves how you hold it.</div></div>
       <div class="set-row"><div class="label">Phone curve direction</div><div class="seg" id="segFlip"><button data-v="0" aria-pressed="true">Normal</button><button data-v="1" aria-pressed="false">Flipped</button></div><div class="body">If your hooks go right, flip it.</div></div>
+      <div class="body" id="diag"></div>
       <div class="btns"><button class="btn" id="setClose">Done</button></div>
     </div>
 
@@ -1210,7 +1211,7 @@ $('helpClose').addEventListener('click', () => { LS.set('dailyhole:seenHelp', tr
 $('setBtn').addEventListener('click', () => { if (phase !== 'ready') return; renderSettings(); openCard('setCard'); });
 $('setClose').addEventListener('click', () => closeCard('setCard'));
 function segSet(id, v){ [...$(id).querySelectorAll('button')].forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); }
-function renderSettings(){ segSet('segHand', hand); segSet('segAddr', addrCal ? 'mine' : 'std'); segSet('segInput', inputMode); segSet('segFeel', feelIdx); segSet('segPS', practiceSwing ? 1 : 0); segSet('segFlip', curveFlip ? 1 : 0); }
+function renderSettings(){ $('diag').textContent = lastDiag || 'Swing once and your last swing\'s numbers show here.'; segSet('segHand', hand); segSet('segAddr', addrCal ? 'mine' : 'std'); segSet('segInput', inputMode); segSet('segFeel', feelIdx); segSet('segPS', practiceSwing ? 1 : 0); segSet('segFlip', curveFlip ? 1 : 0); }
 $('segInput').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.v === 'motion') enableMotion(); else { inputMode = 'swipe'; $('inputNote').textContent = ''; } renderSettings(); });
 $('segFeel').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; feelIdx = +b.dataset.v; LS.set('dailyhole:feel', feelIdx); renderSettings(); });
 $('segPS').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; practiceSwing = b.dataset.v === '1'; $('psTag').hidden = !practiceSwing; renderSettings(); });
@@ -1280,40 +1281,47 @@ function renderFace(){
   $('faceGauge').classList.toggle('off', !ok);
   $('facePose').textContent = calibrating ? calibrating : !ok ? (ori.beta === null ? 'Waiting for the motion sensors…' : 'Get set: screen up, top of the phone toward the ball.') : motion.state === 'armed' ? (mode === 'putt' ? 'Ready. Stroke it.' : 'Ready. Swing.') : 'On plane. Hold still.';
 }
+// Safari on iPhone reports rotationRate as alpha = x-axis, beta = y-axis, gamma = z-axis; the spec (Chrome, Android) uses alpha = z, beta = x, gamma = y.
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function rates(r){ const a = r.alpha || 0, b = r.beta || 0, g = r.gamma || 0; return IOS ? {x:a, y:b, z:g} : {x:b, y:g, z:a}; }
+let ySign = 1, yCorr = 0, prevG = null, lastDiag = '';
 function onMotion(e){
   const r = e.rotationRate; if (!r || r.alpha === null) return; const now = performance.now();
   const dt = motion.lastT ? clamp((now - motion.lastT)/1000, 0, 0.1) : 0; motion.lastT = now; motion.last = now;
+  const w = rates(r);
+  // learn which way the roll rate runs relative to the face gauge from small waggles at address
+  if (ori.gamma !== null){ if (prevG !== null && motion.state !== 'back' && motion.state !== 'down'){ const dG = ori.gamma - prevG; if (Math.abs(w.y) > 8 && Math.abs(dG) > 0.05 && Math.abs(dG) < 10){ yCorr = clamp(yCorr + Math.sign(dG*w.y), -40, 40); if (Math.abs(yCorr) > 6) ySign = Math.sign(yCorr); } } prevG = ori.gamma; }
   if (inputMode !== 'motion' || phase !== 'ready' || reading || cardOpen()) return;
   const k = mode === 'putt' ? 0.3 : mode === 'short' ? 0.6 : 1;
-  const v = [r.alpha||0, r.beta||0, r.gamma||0], mag = Math.hypot(v[0], v[1], v[2]);
+  const mag = Math.hypot(w.x, w.y, w.z);
   if (motion.state === 'address'){
     if (!poseOK()){ motion.stillSince = 0; return; }
-    if (mag < 45*Math.max(k, 0.6)){ if (!motion.stillSince) motion.stillSince = now; if (now - motion.stillSince > 450){ motion.state = 'armed'; motion.face0 = faceNow(); sfx.tick(); } } else motion.stillSince = 0;
+    if (mag < 50*Math.max(k, 0.6)){ if (!motion.stillSince) motion.stillSince = now; if (now - motion.stillSince > 400){ motion.state = 'armed'; motion.face0 = faceNow(); sfx.tick(); } } else motion.stillSince = 0;
   } else if (motion.state === 'armed'){
     if (!poseOK() && mag < 80){ motion.state = 'address'; motion.stillSince = 0; return; }
     if (mag < 45) motion.face0 = faceNow();
-    if (mag > 170*k){
-      let ax = 0; for (let i=1;i<3;i++) if (Math.abs(v[i]) > Math.abs(v.at(ax))) ax = i;
-      if (ax !== 0){ motion.state = 'address'; motion.stillSince = 0; setHint('Swing along the plane: keep the screen facing up the shaft as you take it back.'); return; }
-      Object.assign(motion, {sign:Math.sign(v[0]), state:'back', t0:now, peak:0, faceInt:0, faceAtPeak:0, sums:[0,0,0]});
+    const sw = Math.abs(w.z) >= Math.abs(w.x) ? 'z' : 'x';  // the swing turns the phone about its screen normal (or its short axis if the screen faces the target)
+    if (Math.abs(w[sw]) > 120*k && Math.abs(w[sw]) > Math.abs(w.y)*0.6){
+      Object.assign(motion, {axis:sw, sign:Math.sign(w[sw]), state:'back', t0:now, peak:0, faceInt:0, faceAtPeak:0, sums:{x:0, y:0, z:0}});
     }
   } else if (motion.state === 'back' || motion.state === 'down'){
-    motion.sums[0] += Math.abs(v[0])*dt; motion.sums[1] += Math.abs(v[1])*dt; motion.sums[2] += Math.abs(v[2])*dt;
-    motion.faceInt += v[2]*dt;
-    const down = -motion.sign*v[0]; if (down > 120*k) motion.state = 'down';
+    motion.sums.x += Math.abs(w.x)*dt; motion.sums.y += Math.abs(w.y)*dt; motion.sums.z += Math.abs(w.z)*dt;
+    motion.faceInt += w.y*dt;
+    const down = -motion.sign*w[motion.axis]; if (down > 120*k) motion.state = 'down';
     const ref = FEELS[feelIdx].ref*k;
     if (motion.state === 'down'){
       if (down > motion.peak){ motion.peak = down; motion.faceAtPeak = motion.faceInt; }
       motionMeter(motion.peak/ref, `${Math.round(motion.peak/ref*100)}%`);
-      if (motion.peak > 300*k && down < motion.peak*0.4){
+      if (motion.peak > 250*k && down < motion.peak*0.45){
         motion.state = 'idle'; hideMeterSoon();
-        const tot = motion.sums[0] + motion.sums[1] + motion.sums[2];
-        if (tot <= 0 || motion.sums[0]/tot < 0.5){ motion.state = 'address'; motion.stillSince = 0; setHint("That didn't look like a golf swing, so it didn't count. Set up and swing on the plane."); return; }
-        const face = motion.face0 + motion.faceAtPeak*handSign()*(curveFlip ? -1 : 1);
+        const tot = motion.sums.x + motion.sums.y + motion.sums.z, share = tot > 0 ? motion.sums[motion.axis]/tot : 0;
+        const face = motion.face0 + motion.faceAtPeak*ySign*handSign()*(curveFlip ? -1 : 1);
+        lastDiag = `Last swing: ${Math.round(motion.peak)}°/s, ${Math.round(share*100)}% on plane, face ${Math.abs(Math.round(face))}° ${face >= 0 ? 'open' : 'closed'}.`;
+        if (share < 0.38){ motion.state = 'address'; motion.stillSince = 0; setHint(`That didn't look like a golf swing (${Math.round(share*100)}% on plane), so it didn't count. Set up and swing through.`); return; }
         const cu = clamp(face/12, -1, 1)*handSign();
-        launch(motion.peak/ref, cu, {input:'motion', rate:Math.round(motion.peak), ref:Math.round(ref), feel:FEELS[feelIdx].n, face:+face.toFixed(1)});
+        launch(motion.peak/ref, cu, {input:'motion', rate:Math.round(motion.peak), ref:Math.round(ref), feel:FEELS[feelIdx].n, face:+face.toFixed(1), share:+share.toFixed(2)});
       }
-    } else motionMeter(0, 'Back');
+    } else motionMeter(Math.abs(w[motion.axis])/ref*0.5, 'Back');
     if (now - motion.t0 > 3000){ motion.state = 'address'; motion.stillSince = 0; hideMeterSoon(); setHint('Too slow. Set up and go again.'); }
   }
 }
