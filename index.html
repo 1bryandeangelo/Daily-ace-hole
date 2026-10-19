@@ -93,6 +93,9 @@ button{font-family:var(--sans)}
 .gauge.curve::before{content:"";position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--faint)}
 .gauge.curve b{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ink)}
 .ends{display:flex;justify-content:space-between;font-size:.56rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.trace{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-radius:14px;background:var(--well)}
+.trace svg{width:100%;height:auto;font-family:var(--sans)}
+.icon[aria-pressed="true"]{background:var(--ink);color:var(--clubhouse)}
 .rep-why{font-size:.8rem;line-height:1.45;color:var(--soft)}
 
 /* summary */
@@ -159,7 +162,7 @@ button{font-family:var(--sans)}
 
 /* controls */
 .bottom{display:flex;flex-direction:column;gap:8px;align-items:center}
-.lie{display:flex;align-items:baseline;gap:10px;text-shadow:0 1px 12px rgba(8,12,10,.8)}
+.lie{display:flex;align-items:baseline;gap:10px;white-space:nowrap;text-shadow:0 1px 12px rgba(8,12,10,.8)}
 .lie .num{font-size:1.9rem}
 .lie .label{color:var(--ink);opacity:.85}
 .caddie{font-size:.86rem;font-weight:600;text-align:center;max-width:34ch;text-wrap:balance;padding:8px 14px;border-radius:999px;background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -219,6 +222,7 @@ button{font-family:var(--sans)}
       </div>
       <div class="icons" id="icons">
         <button class="icon glass" id="helpBtn" aria-label="How to play"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.4 7.3a2.7 2.7 0 1 1 3.9 2.4c-.8.4-1.3 1-1.3 1.9v.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="10" cy="15.3" r="1.1" fill="currentColor"/></svg></button>
+        <button class="icon glass" id="rangeBtn" aria-label="Driving range" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg></button>
         <button class="icon glass" id="setBtn" aria-label="Swing settings"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h9M15 6h2M3 14h2M8 14h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="13.5" cy="6" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6.5" cy="14" r="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
       </div>
       <button class="tag" id="psTag" hidden>Practice swing on</button>
@@ -246,6 +250,20 @@ button{font-family:var(--sans)}
       </div>
       <div class="shot-sub" id="scSub"></div>
       <div class="note" id="scNote" hidden></div>
+      <div class="trace" id="trace" hidden>
+        <div class="label">Club face through your swing</div>
+        <svg viewBox="0 0 300 96" aria-hidden="true">
+          <rect x="0" y="40" width="300" height="16" rx="4" fill="rgba(169,214,142,.14)"/>
+          <line x1="0" y1="48" x2="300" y2="48" stroke="rgba(244,238,226,.3)" stroke-width="1" stroke-dasharray="3 4"/>
+          <text x="4" y="12" font-size="9" fill="rgba(244,238,226,.55)" font-weight="600" letter-spacing="1">OPEN</text>
+          <text x="4" y="92" font-size="9" fill="rgba(244,238,226,.55)" font-weight="600" letter-spacing="1">CLOSED</text>
+          <path id="tracePath" d="" fill="none" stroke="#f4eee2" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+          <line id="traceImp" x1="0" y1="4" x2="0" y2="92" stroke="#e4573f" stroke-width="1.5"/>
+          <circle id="traceDot" cx="0" cy="48" r="4.5" fill="#e4573f"/>
+        </svg>
+        <div class="ends"><span>Takeaway</span><span>Impact</span></div>
+        <div class="rep-why">Square at impact means the line crosses the green band at the red mark.</div>
+      </div>
       <div class="report" id="report" hidden>
         <div class="rep-row"><span class="label">Power</span><div class="gauge"><i id="repPow"></i><em id="repNeed"></em></div><span class="rep-v" id="repPowTxt"></span></div>
         <div class="rep-row"><span class="label">Curve</span><div><div class="gauge curve"><b id="repDot"></b></div><div class="ends"><span id="endL">Hook</span><span id="endR">Slice</span></div></div><span class="rep-v" id="repCurveTxt"></span></div>
@@ -282,7 +300,7 @@ button{font-family:var(--sans)}
       </div>
       <div class="style"><div class="label">Today you played it like a</div><div class="title" id="styleName">—</div><div class="body" id="styleWhy"></div></div>
       <div class="share" id="shareText"></div>
-      <div class="btns"><button class="btn" id="copyBtn">Copy result</button><button class="btn quiet" id="practiceBtn">Practice</button><button class="btn quiet" id="badgesBtn">Badges</button></div>
+      <div class="btns"><button class="btn" id="copyBtn">Copy result</button><button class="btn quiet" id="practiceBtn">Practice</button><button class="btn quiet" id="badgesBtn">Badges</button><button class="btn quiet" id="rangeSumBtn">Driving range</button></div>
       <div class="foot" id="countdown"></div>
     </div>
 
@@ -293,6 +311,7 @@ button{font-family:var(--sans)}
       <div class="help-sec"><h3>Swiping</h3><p class="body">Drag down on the course to take it back, then flick straight up. Farther back means more power, and a slow flick loses some. Drift <b>right</b> and the ball curves right (slice). Drift <b>left</b> and it curves left (hook). Putts only care how far you pull back.</p></div>
       <div class="help-sec"><h3>Swinging your phone</h3><p class="body">Take your stance with the phone in your dominant hand like the grip: <b>screen up, top pointing down at the ball</b>, the screen sitting on the swing plane. The game only arms when you're set up this way and still. Then swing through. <b>Speed</b> sets power, and the <b>club face</b> at impact sets curve: open goes right, closed goes left (for a right-hander). Look down at the face gauge to square it up before you swing. Waving the phone around doesn't count.</p></div>
       <div class="help-sec"><h3>Shots</h3><p class="body"><b>Full</b> is a normal swing. <b>Punch</b> flies low and runs. Around the green, <b>Chip</b> runs out, <b>Pitch</b> lands soft, and <b>Flop</b> goes straight up and stops. <b>Sand</b> gets you out of a bunker. From the fringe you can <b>Putt</b>.</p></div>
+      <div class="help-sec"><h3>Driving range</h3><p class="body">Tap the target icon to hit unlimited balls at today's green. Nothing counts. After each phone swing you'll see a chart of what your club face did from takeaway to impact.</p></div>
       <div class="help-sec"><h3>On the green</h3><p class="body">Pace is in <b>feet</b>: pull back to the distance you want the ball to roll on a flat green. Your caddie tells you if it plays uphill or downhill and how many <b>cups</b> it breaks. <b>Read green</b> zooms in on your line. Anything inside <b>3 feet</b> is a gimme.</p></div>
       <div class="btns"><button class="btn" id="helpClose">Let's play</button></div>
     </div>
@@ -725,6 +744,7 @@ function expStrokes(lie, yd){
 }
 
 // ---------- state ----------
+let rangeMode = false, rangeHist = [], lastTrace = null;
 let mode = 'full', currentLie = 'tee', clubIdx = 4, fullType = 'full', shortType = 'pitch', aimOff = 0, aimCups = 0, puttRangeIdx = 3;
 let reading = false, phase = 'ready', practice = false, practiceSwing = false;
 let inputMode = 'swipe', feelIdx = clamp(+LS.get('dailyhole:feel', 1) || 1, 0, 2), curveFlip = !!LS.get('dailyhole:flip', false);
@@ -738,9 +758,9 @@ const roundKey = 'dailyhole:r:' + todayKey;
 function freshRound(){ return {shots:[], strokes:0, done:false, pickedUp:false, ball:{x:0, z:0}}; }
 function loadRound(){ if (preview) return freshRound(); const r = LS.get(roundKey, null); return r && Array.isArray(r.shots) && r.ball ? r : freshRound(); }
 let mainRound = loadRound(), round = mainRound;
-function saveRound(){ if (!preview && !practice) LS.set(roundKey, round); }
+function saveRound(){ if (!preview && !practice && !rangeMode) LS.set(roundKey, round); }
 const priorDays = LS.get('dailyhole:days', []).filter(k => k !== todayKey).length;
-const showTick = () => practice || preview || priorDays < 3;
+const showTick = () => practice || preview || rangeMode || priorDays < 3;
 
 const dPin = (x, z) => Math.hypot(x-PIN.x, z-PIN.z);
 const yawTo = (x, z) => Math.atan2(PIN.x-x, PIN.z-z);
@@ -868,6 +888,13 @@ function launch(power, curve, info){
 
 function finish(){
   phase = 'done';
+  if (rangeMode){
+    const yaw0 = yawTo(shotStart.x, shotStart.z), lx = ball.landX === undefined ? ball.x : ball.landX, lz = ball.landZ === undefined ? ball.z : ball.landZ;
+    const off = (lx-shotStart.x)*Math.cos(yaw0) - (lz-shotStart.z)*Math.sin(yaw0);
+    const rec = {n:1, mode:shotStart.mode, club:shotStart.club, type:shotStart.type, carry:Math.round(ball.carry || 0), off, endD:dPin(ball.x, ball.z), wet:!!ball.wet, holed:ball.state === 'holed', sw:lastSwing, need:shotStart.need, fromD:shotStart.d, endLie: ball.wet ? 'water' : surfaceAt(ball.x, ball.z), trace: lastSwing && lastSwing.input === 'motion' ? lastTrace : null};
+    rangeHist.push({x:lx, z:lz}); if (rangeHist.length > 12) rangeHist.shift();
+    setTimeout(() => showRangeCard(rec), ball.wet ? 900 : 600); return;
+  }
   const holed = ball.state === 'holed', wet = !!ball.wet;
   let endLie, endD, Ea, penalty = 0, drop = null;
   if (holed){ endLie = 'holed'; endD = 0; Ea = 0; }
@@ -977,7 +1004,7 @@ function renderLie(){
   const d = dPin(ball.x, ball.z);
   $('caddie').hidden = !(mode === 'putt' && caddieText); $('caddie').textContent = caddieText;
   $('lieDist').textContent = mode === 'putt' || d < 25 ? fmtDist(d) : `${Math.round(d)} yds`;
-  $('lieTxt').textContent = `${practice ? 'Practice · ' : ''}Shot ${round.strokes + 1} · ${LIE_NAME[currentLie]}`;
+  $('lieTxt').textContent = rangeMode ? 'Driving range' : `${practice ? 'Practice · ' : ''}Shot ${round.strokes + 1} · ${LIE_NAME[currentLie]}`;
 }
 function renderControls(){
   const bar = $('shotBar'); let h = '';
@@ -1072,15 +1099,51 @@ function showShotCard(s){
   $('scNote').hidden = !note; $('scNote').textContent = note;
   fillReport(s);
   $('nextBtn').textContent = round.done ? (practice ? 'Play it again' : 'See your card') : 'Next shot';
-  $('backBtn').hidden = !(practice && round.done);
+  $('backBtn').hidden = !(practice && round.done); $('backBtn').textContent = 'Your card'; $('trace').hidden = true;
   $('shotCard').hidden = false; $('shotCard').scrollTop = 0;
 }
+function showRangeCard(r){
+  phase = 'card';
+  $('scLabel').textContent = `Range · ${clubName(r)}`;
+  $('scRes').textContent = `${r.carry} yds`; $('scRes').style.color = r.holed ? 'var(--flag)' : '';
+  const off = Math.abs(r.off) < 1 ? 'on line' : `${Math.round(Math.abs(r.off))} yds ${r.off > 0 ? 'right' : 'left'}`;
+  $('scSub').textContent = `Carry, landed ${off} · ${r.holed ? 'in the cup!' : r.wet ? 'in the water' : fmtDist(r.endD) + ' from the pin'}`;
+  const cu = r.sw ? r.sw.cu : 0, straight = Math.abs(cu) < 0.12;
+  $('scGrade').className = `grade g-${straight ? 'good' : Math.abs(cu) < 0.35 ? 'fine' : 'poor'}`; $('scGradeTxt').textContent = r.sw ? curveLabel(cu) : '';
+  let note = '';
+  if (r.sw && r.sw.input === 'motion'){ const f = r.sw.face || 0; note = `Face ${Math.abs(f) < 1 ? 'square' : Math.round(Math.abs(f)) + '° ' + (f > 0 ? 'open' : 'closed')} at impact · ${r.sw.rate}°/s swing speed.`; }
+  $('scNote').hidden = !note; $('scNote').textContent = note;
+  fillReport(r); drawTrace(r.trace);
+  $('nextBtn').textContent = 'Hit another'; $('backBtn').textContent = 'Back to the hole'; $('backBtn').hidden = false;
+  $('shotCard').hidden = false; $('shotCard').scrollTop = 0;
+}
+function drawTrace(t){
+  const el = $('trace'); if (!t || t.pts.length < 4){ el.hidden = true; return; } el.hidden = false;
+  const end = Math.min(t.pts.at(-1)[0], t.peakT + 120), W2 = 300, Y = f => 48 - clamp(f, -40, 40)*1.0, X = ms => 6 + ms/Math.max(1, end)*(W2-12);
+  const pts = t.pts.filter(p => p[0] <= end);
+  $('tracePath').setAttribute('d', pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(''));
+  const imp = pts.reduce((a, p) => Math.abs(p[0]-t.peakT) < Math.abs(a[0]-t.peakT) ? p : a, pts[0]);
+  $('traceImp').setAttribute('x1', X(t.peakT)); $('traceImp').setAttribute('x2', X(t.peakT));
+  $('traceDot').setAttribute('cx', X(imp[0])); $('traceDot').setAttribute('cy', Y(imp[1]));
+}
+function enterRange(){
+  rangeMode = true; practice = false; round = freshRound();
+  ['summary','badgeCard','shotCard','helpCard','setCard'].forEach(id => $(id).hidden = true);
+  setupLie(); $('rangeBtn').setAttribute('aria-pressed', 'true'); setHint('Driving range. Hit as many as you like.');
+}
+function exitRange(){
+  rangeMode = false; rangeHist = []; $('shotCard').hidden = true; $('trace').hidden = true; $('rangeBtn').setAttribute('aria-pressed', 'false');
+  if (mainRound.done) showSummary(); else { round = mainRound; setupLie(); }
+}
+$('rangeBtn').addEventListener('click', () => { if (rangeMode){ if (phase === 'ready') exitRange(); } else if (phase === 'ready') enterRange(); });
+$('rangeSumBtn').addEventListener('click', enterRange);
 $('nextBtn').addEventListener('click', () => {
   $('shotCard').hidden = true;
+  if (rangeMode){ round = freshRound(); setupLie(); return; }
   if (round.done){ if (practice){ round = freshRound(); setupLie(); } else showSummary(); return; }
   setupLie();
 });
-$('backBtn').addEventListener('click', () => { $('shotCard').hidden = true; showSummary(); });
+$('backBtn').addEventListener('click', () => { $('shotCard').hidden = true; if (rangeMode) exitRange(); else showSummary(); });
 
 // ---------- scoring ----------
 const BANDS = {1:[100,100,'Ace'], 2:[80,99,'Birdie'], 3:[55,79,'Par'], 4:[30,54,'Bogey'], 5:[15,29,'Double bogey'], 6:[5,14,'Triple bogey']};
@@ -1357,11 +1420,12 @@ function onMotion(e){
     // stay armed through the takeaway; only disarm if the phone sits out of position, not moving, for a while
     if (!poseOK() && mag < 40){ if (!motion.outSince) motion.outSince = now; if (now - motion.outSince > 1500){ motion.state = 'address'; motion.stillSince = 0; return; } } else motion.outSince = 0;
     if (poseOK() && mag < 45) motion.face0 = faceNow();
-    if (mag > 90*k) Object.assign(motion, {state:'back', t0:now, peak:0, faceInt:0, faceAtPeak:0, sums:{x:0, y:0, z:0}, ang:{x:0, z:0}, backPeak:0});
+    if (mag > 90*k) Object.assign(motion, {state:'back', t0:now, peak:0, peakT:0, faceInt:0, faceAtPeak:0, sums:{x:0, y:0, z:0}, ang:{x:0, z:0}, backPeak:0, trace:[]});
   } else if (motion.state === 'back' || motion.state === 'down'){
     motion.sums.x += Math.abs(w.x)*dt; motion.sums.y += Math.abs(w.y)*dt; motion.sums.z += Math.abs(w.z)*dt;
     motion.ang.x += w.x*dt; motion.ang.z += w.z*dt;
     motion.faceInt += w.y*dt;
+    if (motion.trace.length < 600) motion.trace.push([now - motion.t0, motion.face0 + motion.faceInt*ySign*handSign()*(curveFlip ? -1 : 1)]);
     const ax = motion.sums.z >= motion.sums.x ? 'z' : 'x';            // the in-plane axis, whichever has turned most
     const ref = FEELS[feelIdx].ref*k;
     if (motion.state === 'back'){
@@ -1371,7 +1435,7 @@ function onMotion(e){
       else motionMeter(Math.min(0.5, mag/ref*0.5), 'Back');
     }
     if (motion.state === 'down'){
-      if (mag > motion.peak){ motion.peak = mag; motion.faceAtPeak = motion.faceInt; }
+      if (mag > motion.peak){ motion.peak = mag; motion.faceAtPeak = motion.faceInt; motion.peakT = now - motion.t0; }
       motionMeter(motion.peak/ref, mode === 'putt' ? `${Math.round(motion.peak/ref*PUTT_RANGES[puttRangeIdx])} ft` : `${Math.round(motion.peak/ref*100)}%`);
       if (motion.peak > 220*k && mag < motion.peak*0.45){
         motion.state = 'idle'; hideMeterSoon();
@@ -1379,6 +1443,7 @@ function onMotion(e){
         const face = motion.face0 + motion.faceAtPeak*ySign*handSign()*(curveFlip ? -1 : 1);
         lastDiag = `Last swing: ${Math.round(motion.peak)}°/s peak, ${Math.round(share*100)}% on plane, face ${Math.abs(Math.round(face))}° ${face >= 0 ? 'open' : 'closed'}.`;
         if (share < 0.35){ motion.state = 'address'; motion.stillSince = 0; setHint(`That didn't look like a golf swing (${Math.round(share*100)}% on plane), so it didn't count.`); return; }
+        lastTrace = {pts:motion.trace.slice(), peakT:motion.peakT};
         const cu = clamp(face/12, -1, 1)*handSign();
         launch(motion.peak/ref, cu, {input:'motion', rate:Math.round(motion.peak), ref:Math.round(ref), feel:FEELS[feelIdx].n, face:+face.toFixed(1), share:+share.toFixed(2)});
       }
@@ -1462,6 +1527,10 @@ function updateCamera(dt){
 }
 
 // ---------- frame ----------
+function drawRangeDots(){
+  if (!rangeMode) return;
+  rangeHist.forEach((h, i) => { const p = proj(h.x, Hh(h.x, h.z)+0.05, h.z); if (!p) return; const a = 0.35 + 0.65*(i+1)/rangeHist.length; ctx.fillStyle = i === rangeHist.length-1 ? `rgba(228,87,63,${a})` : `rgba(244,238,226,${a})`; ctx.beginPath(); ctx.arc(p[0], p[1], Math.max(3, 0.6*F/p[2]), 0, 7); ctx.fill(); });
+}
 function drawAim(){
   if (phase !== 'ready' || (reading && mode !== 'putt')) return;
   ctx.lineCap = 'round';
@@ -1504,7 +1573,7 @@ function frame(now){
   updateCamera(dt);
   const hz = horizonY();
   ctx.clearRect(0, 0, W, H);
-  drawSky(hz); drawRidges(hz); drawGround(hz); drawLake(hz); drawCourseNear(); drawGreenComplex(); drawAim();
+  drawSky(hz); drawRidges(hz); drawGround(hz); drawLake(hz); drawCourseNear(); drawGreenComplex(); drawRangeDots(); drawAim();
   const vis = []; for (const t of trees){ const z = camSpace(t.x, 0, t.z)[2]; if (z > 3) vis.push([z, t]); } vis.sort((a,b) => b[0]-a[0]);
   const dP = camSpace(PIN.x, 0, PIN.z)[2], closeCut = mode === 'full' ? 3 : 8;
   if (!reading) for (const [z, t] of vis) if (z < 400) drawTreeShadow(t);
