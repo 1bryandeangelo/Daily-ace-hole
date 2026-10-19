@@ -181,7 +181,15 @@ button{font-family:var(--sans)}
 .meter em::after{content:"Pin";position:absolute;right:16px;top:-6px;font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--fair);text-shadow:0 1px 6px rgba(0,0,0,.7)}
 .meter span{position:absolute;right:16px;top:-20px;font-weight:700;font-stretch:80%;font-size:.95rem;color:var(--ink);text-shadow:0 1px 6px rgba(0,0,0,.7);white-space:nowrap;font-variant-numeric:tabular-nums}
 .face{pointer-events:none;width:min(280px,100%);border-radius:22px;padding:14px 16px 16px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.face{position:relative;pointer-events:auto}
 .face svg{width:100%;max-width:240px;height:auto}
+.face-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;border:0;background:var(--well);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.face-x svg{width:16px;height:16px}
+.face.mini{flex-direction:row;align-self:start;width:auto;max-width:100%;padding:8px 16px;gap:12px;border-radius:999px;cursor:pointer}
+.face.mini > svg,.face.mini .label,.face.mini #faceL,.face.mini #faceR,.face.mini .face-dbg,.face.mini .face-x{display:none}
+.face.mini .face-row{width:auto}
+.face.mini .face-row b{font-size:1rem}
+.face.mini .face-pose{font-size:.8rem;text-align:left}
 .face-row{display:flex;justify-content:space-between;align-items:baseline;width:100%;max-width:240px;font-size:.62rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
 .face-row b{font-size:1.25rem;font-weight:700;font-stretch:82%;letter-spacing:0;text-transform:none;color:var(--ink);font-variant-numeric:tabular-nums}
 .face-pose{font-size:.84rem;text-align:center;color:var(--ink);text-wrap:balance}
@@ -219,6 +227,7 @@ button{font-family:var(--sans)}
 
   <div class="mid">
     <div class="face glass" id="faceGauge" hidden>
+      <button class="face-x" id="faceToggle" aria-label="Hide the club face gauge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 12.5l5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <div class="label">Club face</div>
       <svg viewBox="0 0 240 132" aria-hidden="true">
         <path d="M24 120 A96 96 0 0 1 216 120" fill="none" stroke="rgba(244,238,226,.16)" stroke-width="12" stroke-linecap="round"/>
@@ -1312,11 +1321,15 @@ function motionMeter(frac, label){ clearTimeout(meterTimer); meter.classList.add
 function hideMeterSoon(){ clearTimeout(meterTimer); meterTimer = setTimeout(() => meter.classList.remove('show'), 1400); }
 function cardOpen(){ return !$('shotCard').hidden || !$('summary').hidden || !$('helpCard').hidden || !$('setCard').hidden || !$('badgeCard').hidden; }
 let faceShown = null, lastPuttHint = '';
+const faceMini = Object.assign({full:false, short:true}, LS.get('dailyhole:faceMini', {}));
+$('faceToggle').addEventListener('click', e => { e.stopPropagation(); faceMini[mode] = true; LS.set('dailyhole:faceMini', faceMini); });
+$('faceGauge').addEventListener('click', () => { if (faceMini[mode]){ faceMini[mode] = false; LS.set('dailyhole:faceMini', faceMini); } });
 function renderFace(){
   const show = inputMode === 'motion' && phase === 'ready' && !reading && !cardOpen() && mode !== 'putt';
   if (inputMode === 'motion' && phase === 'ready' && !reading && !cardOpen() && mode === 'putt'){ const ok = poseOK(); const t = calibrating || (!ok ? 'Get set: screen up, top of the phone toward the ball.' : motion.state === 'armed' ? 'Ready. Stroke it.' : 'Set. Hold still.'); if (t !== lastPuttHint){ lastPuttHint = t; setHint(t); } } else lastPuttHint = '';
   if (show !== faceShown){ $('faceGauge').hidden = !show; faceShown = show; }
   if (!show) return;
+  $('faceGauge').classList.toggle('mini', !!faceMini[mode]);
   const f = faceNow(), ok = poseOK(), hs = handSign();
   $('faceNeedle').setAttribute('transform', `rotate(${clamp(f, -30, 30)*3*hs} 120 120)`);
   $('faceVal').textContent = Math.abs(f) < 3 ? 'Square' : `${Math.round(Math.abs(f))}° ${f > 0 ? 'open' : 'closed'}`;
